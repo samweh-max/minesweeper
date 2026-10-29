@@ -40,7 +40,7 @@ function Arrow({ dir }: { dir: 'left' | 'right' | 'up' | 'down' }) {
  * window, classic scroll bars appear along the edges, so it is always clear
  * that more tiles lie beyond the visible area (phones hide native scroll bars).
  */
-export function ScrollFrame({ children }: { children: ReactNode }) {
+export function ScrollFrame({ children, overlay }: { children: ReactNode; overlay?: ReactNode }) {
   const wellRef = useRef<HTMLDivElement>(null);
   const [m, setM] = useState<Metrics>({ x: { size: 0, view: 0, pos: 0 }, y: { size: 0, view: 0, pos: 0 } });
 
@@ -81,6 +81,7 @@ export function ScrollFrame({ children }: { children: ReactNode }) {
       {showY && <ScrollBar axis="y" metrics={m.y} well={wellRef} />}
       {showX && <ScrollBar axis="x" metrics={m.x} well={wellRef} />}
       {showX && showY && <div className="scrollbar-corner" />}
+      {overlay}
     </div>
   );
 }

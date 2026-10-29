@@ -202,7 +202,9 @@ console.log('Desktop 1280 × 800');
   if (won) {
     check((await statusText(page)).startsWith('You won!'), 'win message shown');
     check((await ledLabel(page, 'Mines left')) === 'Mines left: 0', 'mine counter reads 0 after a win');
+    check((await page.locator('canvas.fireworks').count()) === 1, 'fireworks play on a win');
     const nameDialog = page.getByRole('dialog', { name: 'Congratulations' });
+    await nameDialog.waitFor({ timeout: 5000 }).catch(() => {});
     if (await nameDialog.count()) {
       await page.screenshot({ path: join(shots, 'desktop-won-name.png') });
       await nameDialog.getByRole('textbox').fill('Tester');
@@ -266,6 +268,7 @@ console.log('Desktop 1280 × 800');
   await page.screenshot({ path: join(shots, 'desktop-custom-100x100.png') });
 
   // Keyboard focus ring.
+  if ((await face(page)) === 'cool') await page.getByRole('dialog').waitFor({ timeout: 5000 }).catch(() => {});
   if (await page.getByRole('dialog').count()) await page.keyboard.press('Escape'); // e.g. a record on the big board
   await chooseMenu(page, 'Game', 'Beginner');
   if (await page.getByRole('button', { name: 'Yes' }).count()) await page.getByRole('button', { name: 'Yes' }).click();
@@ -331,6 +334,7 @@ console.log('Phone 390 × 844 (touch)');
   const customWidth = await windowWidth();
   await cell(page, 0).tap();
   const named = page.getByRole('dialog', { name: 'Congratulations' });
+  await named.waitFor({ timeout: 5000 }).catch(() => {});
   if (await named.count()) await named.getByRole('button', { name: 'OK' }).tap();
   check((await statusText(page)).includes('New best time'), 'win message shown on phone');
   check((await windowWidth()) === customWidth, 'win message does not widen the window');

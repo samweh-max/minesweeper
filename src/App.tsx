@@ -11,6 +11,7 @@ import { FaceButton } from './components/FaceButton';
 import { LedCounter } from './components/LedCounter';
 import { Marquee } from './components/Marquee';
 import { ScrollFrame } from './components/ScrollFrame';
+import { Fireworks } from './components/Fireworks';
 import { MenuBar, type MenuDef } from './components/MenuBar';
 import { Sprite } from './components/Sprite';
 import { Timer } from './components/Timer';
@@ -85,6 +86,7 @@ interface LastResult {
 const ZOOM_LABELS: Record<string, string> = { auto: 'Auto Size', 1: '100%', 1.5: '150%', 2: '200%', 3: '300%' };
 
 const defaultStore = createBrowserStore();
+const NAME_PROMPT_DELAY_MS = import.meta.env.MODE === 'test' ? 0 : 2200;
 
 export default function App({ store = defaultStore }: { store?: KeyValueStore }) {
   const [settings, setSettings] = useState<Settings>(() => loadSettings(store));
@@ -202,7 +204,7 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
     if (settingsRef.current.sound) playSound(won ? 'win' : 'boom');
     if (outcome.newBest) {
       const best = bestTimeFor(outcome.records, outcome.slot)!;
-      setDialog({
+      const nameDialog: DialogState = {
         kind: 'name',
         slot: outcome.slot,
         seconds: best.seconds,
@@ -210,7 +212,14 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
           outcome.slot.kind === 'preset'
             ? `${DIFFICULTY_LABELS[outcome.slot.difficulty]} level`
             : `the ${describeConfig(game.config)} board`,
-      });
+      };
+      // Let the fireworks play before asking for a name. The time is already saved.
+      if (NAME_PROMPT_DELAY_MS === 0) {
+        setDialog(nameDialog);
+      } else {
+        // Not cancelled by a new game: the player can still name the record.
+        window.setTimeout(() => setDialog((d) => d ?? nameDialog), NAME_PROMPT_DELAY_MS);
+      }
     }
   }, [game, updateRecords]);
 
@@ -323,7 +332,7 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
             <FaceButton face={face} onClick={newGame} />
             <Timer startTime={game.startTime} endTime={game.endTime} onTick={onTick} />
           </div>
-          <ScrollFrame>
+          <ScrollFrame overlay={game.status === 'won' ? <Fireworks key={game.id} /> : null}>
             <Board
               game={game}
               flagMode={flagMode}
