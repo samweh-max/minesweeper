@@ -1,0 +1,66 @@
+/*
+ * Visual tokens for the classic Windows look. Every colour and bevel in the
+ * app comes from here, so the system stays consistent.
+ */
+:root {
+  color-scheme: light;
+
+  --c-desktop: #008080;
+  --c-face: #c0c0c0;
+  --c-light: #ffffff;
+  --c-light-2: #dfdfdf;
+  --c-shadow: #808080;
+  --c-dark: #000000;
+  --c-text: #000000;
+  --c-text-disabled: #808080;
+  --c-window: #ffffff;
+  --c-title-1: #000080;
+  --c-title-2: #1084d0;
+  --c-select: #000080;
+  --c-select-text: #ffffff;
+  --c-error: #a00000;
+  --c-exploded: #ff0000;
+  --c-led-bg: #000000;
+  --c-led-on: #ff0000;
+  --c-led-off: #4a0000;
+
+  /* Classic number colours */
+  --n1: #0000ff;
+  --n2: #008000;
+  --n3: #ff0000;
+  --n4: #000080;
+  --n5: #800000;
+  --n6: #008080;
+  --n7: #000000;
+  --n8: #808080;
+
+  --font-ui: Tahoma, 'MS Sans Serif', 'Microsoft Sans Serif', 'Segoe UI', Geneva, Verdana, 'DejaVu Sans', sans-serif;
+  --font-size-ui: 11px;
+  --tile: 16px;
+
+  /* Bevels drawn with inset shadows: outer edge first, then inner edge. */
+  --bevel-window: inset -1px -1px var(--c-dark), inset 1px 1px var(--c-light-2), inset -2px -2px var(--c-shadow),
+    inset 2px 2px var(--c-light);
+  --bevel-button: inset -1px -1px var(--c-dark), inset 1px 1px var(--c-light), inset -2px -2px var(--c-shadow),
+    inset 2px 2px var(--c-light-2);
+  --bevel-pressed: inset -1px -1px var(--c-light), inset 1px 1px var(--c-dark), inset -2px -2px var(--c-light-2),
+    inset 2px 2px var(--c-shadow);
+  --bevel-field: inset -1px -1px var(--c-light), inset 1px 1px var(--c-shadow), inset -2px -2px var(--c-light-2),
+    inset 2px 2px var(--c-dark);
+  --bevel-thin-raised: inset -1px -1px var(--c-shadow), inset 1px 1px var(--c-light);
+  --bevel-thin-sunken: inset -1px -1px var(--c-light), inset 1px 1px var(--c-shadow);
+  /* The 50% grey/white dither used for latched toggle buttons. */
+  --dither: repeating-conic-gradient(var(--c-light) 0 25%, var(--c-face) 0 50%) 0 0 / 2px 2px;
+}
+
+/* Colour-blind friendly numbers: avoids red/green pairs and keeps strong contrast on grey. */
+.palette-cb {
+  --n1: #0044cc;
+  --n2: #a34700;
+  --n3: #a0006e;
+  --n4: #001d66;
+  --n5: #4d2600;
+  --n6: #00665c;
+  --n7: #000000;
+  --n8: #3d3d3d;
+}
