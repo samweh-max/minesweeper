@@ -268,6 +268,7 @@ console.log('Desktop 1280 × 800');
   // Keyboard focus ring.
   if (await page.getByRole('dialog').count()) await page.keyboard.press('Escape'); // e.g. a record on the big board
   await chooseMenu(page, 'Game', 'Beginner');
+  if (await page.getByRole('button', { name: 'Yes' }).count()) await page.getByRole('button', { name: 'Yes' }).click();
   await page.locator('.face').focus();
   await page.keyboard.press('Tab');
   await page.keyboard.press('ArrowRight');
@@ -294,6 +295,8 @@ console.log('Phone 390 × 844 (touch)');
   await page.goto(URL);
   const toggle = page.getByRole('button', { name: /Flag/ });
   check(await toggle.isVisible(), 'flag-mode button visible on touch screens');
+  const touchAction = () => page.locator('.board').evaluate((el) => getComputedStyle(el).touchAction);
+  check((await touchAction()) === 'none', 'beginner board does not pan under the finger');
   const tile = await cell(page, 0).boundingBox();
   check(tile.width >= 28, `tiles are finger-sized on beginner (${tile.width.toFixed(1)}px)`);
   await page.screenshot({ path: join(shots, 'phone-beginner.png') });
@@ -309,11 +312,37 @@ console.log('Phone 390 × 844 (touch)');
   check((await cell(page, 30).getAttribute('data-kind')) === 'open', 'tap reveals in reveal mode');
   await page.screenshot({ path: join(shots, 'phone-playing.png') });
 
+  // The window must keep its size when the status text changes.
+  const windowWidth = () => page.locator('.app-window').evaluate((el) => el.getBoundingClientRect().width);
+  const before = await windowWidth();
+  await toggle.tap();
+  check((await statusText(page)).includes('Flag mode'), 'status shows flag mode');
+  check((await windowWidth()) === before, 'turning on flag mode mid-game keeps the window size');
+  await toggle.tap();
+
+  // A long win message scrolls inside the status bar instead of widening the window.
+  await chooseMenu(page, 'Game', 'Custom');
+  const dlg = page.getByRole('dialog', { name: 'Custom Field' });
+  await dlg.getByLabel(/Height/).fill('9');
+  await dlg.getByLabel(/Width/).fill('9');
+  await dlg.getByLabel(/Mines/).fill('0');
+  await dlg.getByRole('button', { name: 'OK' }).tap();
+  const customWidth = await windowWidth();
+  await cell(page, 0).tap();
+  const named = page.getByRole('dialog', { name: 'Congratulations' });
+  if (await named.count()) await named.getByRole('button', { name: 'OK' }).tap();
+  check((await statusText(page)).includes('New best time'), 'win message shown on phone');
+  check((await windowWidth()) === customWidth, 'win message does not widen the window');
+  check((await page.locator('[role="status"] .marquee__track.is-scrolling').count()) === 1, 'long win message scrolls');
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: join(shots, 'phone-won-marquee.png') });
+
   await chooseMenu(page, 'Game', 'Expert');
   const yes = page.getByRole('button', { name: 'Yes' });
   if (await yes.count()) await yes.tap();
   const fits = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
   check(fits, 'expert on a phone does not scroll the page sideways');
+  check((await touchAction()) === 'pan-x pan-y', 'expert board on a phone can still be scrolled');
   const expertTile = await cell(page, 0).boundingBox();
   check(expertTile.width >= 16, `expert tiles stay readable (${expertTile.width}px)`);
   await page.screenshot({ path: join(shots, 'phone-expert.png') });

@@ -16,12 +16,30 @@ interface Viewport {
   dpr: number;
 }
 
+/** Space taken by the notch, home bar and rounded corners (zero in a normal browser tab). */
+function safeAreaInsets(): { x: number; y: number } {
+  if (typeof document === 'undefined' || !document.body) return { x: 0, y: 0 };
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const px = (v: string) => parseFloat(v) || 0;
+  const insets = {
+    x: px(cs.paddingLeft) + px(cs.paddingRight),
+    y: px(cs.paddingTop) + px(cs.paddingBottom),
+  };
+  probe.remove();
+  return insets;
+}
+
 function readViewport(): Viewport {
   if (typeof window === 'undefined') return { width: 1024, height: 768, dpr: 1 };
   const vv = window.visualViewport;
+  const insets = safeAreaInsets();
   return {
-    width: document.documentElement.clientWidth || window.innerWidth,
-    height: vv ? Math.min(vv.height, window.innerHeight) : window.innerHeight,
+    width: (document.documentElement.clientWidth || window.innerWidth) - insets.x,
+    height: (vv ? Math.min(vv.height, window.innerHeight) : window.innerHeight) - insets.y,
     dpr: window.devicePixelRatio || 1,
   };
 }

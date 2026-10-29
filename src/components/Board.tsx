@@ -111,6 +111,22 @@ export function Board({ game, flagMode, onActivate, onChord, onMark, onPressChan
     return () => window.removeEventListener('mouseup', onMouseUp);
   }, [endPress, setPress]);
 
+  // Touch panning is only allowed when the board is bigger than its window and
+  // must be scrolled to reach every tile. Otherwise the board stays still.
+  const [needsPan, setNeedsPan] = useState(false);
+  useLayoutEffect(() => {
+    const well = boardRef.current?.parentElement;
+    if (!well) return;
+    const measure = () =>
+      setNeedsPan(well.scrollWidth > well.clientWidth + 1 || well.scrollHeight > well.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(well);
+    ro.observe(boardRef.current!);
+    return () => ro.disconnect();
+  }, [width, height]);
+
   useEffect(() => () => {
     if (touch.current) clearTimeout(touch.current.timer);
   }, []);
@@ -303,7 +319,7 @@ export function Board({ game, flagMode, onActivate, onChord, onMark, onPressChan
   return (
     <div
       ref={boardRef}
-      className={'board' + (flagMode ? ' board--flag-mode' : '')}
+      className={'board' + (flagMode ? ' board--flag-mode' : '') + (needsPan ? ' board--pannable' : '')}
       role="grid"
       aria-label={`Minefield, ${width} columns by ${height} rows`}
       aria-rowcount={height}

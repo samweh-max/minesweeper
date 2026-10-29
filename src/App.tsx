@@ -9,6 +9,7 @@ import { NameDialog } from './components/dialogs/NameDialog';
 import { StatisticsDialog } from './components/dialogs/StatisticsDialog';
 import { FaceButton } from './components/FaceButton';
 import { LedCounter } from './components/LedCounter';
+import { Marquee } from './components/Marquee';
 import { MenuBar, type MenuDef } from './components/MenuBar';
 import { Sprite } from './components/Sprite';
 import { Timer } from './components/Timer';
@@ -344,10 +345,10 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
             <span>Flag</span>
           </button>
           <div className="statusbar__field statusbar__field--grow" role="status" aria-live="polite">
-            {message}
+            <Marquee text={message} />
           </div>
           <div className="statusbar__field statusbar__level" title={describeConfig(game.config)}>
-            {levelText}
+            <Marquee text={levelText} />
           </div>
         </div>
       </div>
