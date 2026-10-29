@@ -289,12 +289,95 @@ button.titlebar__btn:focus-visible {
   display: block;
 }
 
-.board-well {
+.scroll-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
   border: 3px solid;
   border-color: var(--c-shadow) var(--c-light) var(--c-light) var(--c-shadow);
+}
+
+.board-well {
+  grid-area: 1 / 1;
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-color: var(--c-face) var(--c-light-2);
+  /* Our own classic scroll bars are drawn instead of the browser's. */
+  scrollbar-width: none;
+}
+
+.board-well::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar {
+  display: flex;
+  background: var(--c-face);
+}
+
+.scrollbar--x {
+  grid-area: 2 / 1;
+  height: 16px;
+}
+
+.scrollbar--y {
+  grid-area: 1 / 2;
+  width: 16px;
+  flex-direction: column;
+}
+
+.scrollbar-corner {
+  grid-area: 2 / 2;
+  background: var(--c-face);
+}
+
+.scrollbar__btn {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: var(--c-face);
+  box-shadow: var(--bevel-button);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-dark);
+  touch-action: manipulation;
+}
+
+.scrollbar__btn:active {
+  box-shadow: inset 0 0 0 1px var(--c-shadow);
+}
+
+.scrollbar__btn:active svg {
+  transform: translate(1px, 1px);
+}
+
+.scrollbar__track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--dither);
+  touch-action: none;
+}
+
+.scrollbar__thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--c-face);
+  box-shadow: var(--bevel-button);
+  touch-action: none;
+}
+
+.scrollbar--x .scrollbar__thumb {
+  height: 16px;
+}
+
+.scrollbar--y .scrollbar__thumb {
+  width: 16px;
 }
 
 .board {

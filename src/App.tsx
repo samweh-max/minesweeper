@@ -10,6 +10,7 @@ import { StatisticsDialog } from './components/dialogs/StatisticsDialog';
 import { FaceButton } from './components/FaceButton';
 import { LedCounter } from './components/LedCounter';
 import { Marquee } from './components/Marquee';
+import { ScrollFrame } from './components/ScrollFrame';
 import { MenuBar, type MenuDef } from './components/MenuBar';
 import { Sprite } from './components/Sprite';
 import { Timer } from './components/Timer';
@@ -322,7 +323,7 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
             <FaceButton face={face} onClick={newGame} />
             <Timer startTime={game.startTime} endTime={game.endTime} onTick={onTick} />
           </div>
-          <div className="board-well">
+          <ScrollFrame>
             <Board
               game={game}
               flagMode={flagMode}
@@ -331,7 +332,7 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
               onMark={onMark}
               onPressChange={setPressing}
             />
-          </div>
+          </ScrollFrame>
         </main>
         <div className="statusbar">
           <button
