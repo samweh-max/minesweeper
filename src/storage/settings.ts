@@ -20,6 +20,8 @@ export interface Settings {
   zoom: ZoomSetting;
   /** Name offered in the "fastest time" dialog. */
   playerName: string;
+  /** Send best times to the shared online leaderboard. */
+  onlineScores: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   confirmAbandon: false,
   zoom: 'auto',
   playerName: 'Anonymous',
+  onlineScores: true,
 };
 
 const DIFFICULTIES: readonly Difficulty[] = ['beginner', 'intermediate', 'expert', 'custom'];
@@ -60,6 +63,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     confirmAbandon: asBool(data.confirmAbandon, DEFAULT_SETTINGS.confirmAbandon),
     zoom,
     playerName: name || DEFAULT_SETTINGS.playerName,
+    onlineScores: asBool(data.onlineScores, DEFAULT_SETTINGS.onlineScores),
   };
 }
 

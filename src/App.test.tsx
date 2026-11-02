@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { PRESETS, createRng, generateMines } from './engine';
 import { RECORDS_KEY, SETTINGS_KEY } from './storage';
 import { createMemoryStore, type KeyValueStore } from './storage/storage';
+import type { LeaderboardClient, LeaderboardRow } from './online/leaderboard';
 
 const SEED = 12345;
 vi.mock('./engine/rng', async (importOriginal) => ({
@@ -423,5 +424,88 @@ describe('touch and keyboard', () => {
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
     expect(screen.queryByRole('menu')).toBeNull();
     expect(document.activeElement).toBe(game);
+  });
+});
+
+describe('online leaderboard', () => {
+  function fakeLeaderboard(rows: LeaderboardRow[] = []) {
+    return {
+      fetchBoard: vi.fn<LeaderboardClient['fetchBoard']>(async () => rows),
+      submit: vi.fn<LeaderboardClient['submit']>(async () => {}),
+    };
+  }
+
+  it('sends a new best time after the player names it', async () => {
+    const lb = fakeLeaderboard();
+    render(<App store={store} leaderboard={lb} />);
+    winBeginner();
+    const dialog = screen.getByRole('dialog', { name: 'Congratulations' });
+    fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'Samer' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+    await waitFor(() => expect(lb.submit).toHaveBeenCalledTimes(1));
+    const [, name, times] = lb.submit.mock.calls[0];
+    expect(name).toBe('Samer');
+    expect(Object.keys(times)).toEqual(['beginner']);
+  });
+
+  it('sends nothing when turned off', async () => {
+    const lb = fakeLeaderboard();
+    render(<App store={store} leaderboard={lb} />);
+    chooseMenuItem('Options', /^Send Times to Leaderboard$/);
+    winBeginner();
+    const dialog = screen.getByRole('dialog', { name: 'Congratulations' });
+    fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'Samer' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+    await act(async () => {});
+    expect(lb.submit).not.toHaveBeenCalled();
+  });
+
+  it('shows the top times and the player’s own place', async () => {
+    const lb = fakeLeaderboard([
+      { rank: 1, name: 'Ali', ms: 3210, isMe: false },
+      { rank: 2, name: 'Bo', ms: 4000, isMe: false },
+      { rank: 14, name: 'Samer', ms: 9990, isMe: true },
+    ]);
+    render(<App store={store} leaderboard={lb} />);
+    chooseMenuItem('Game', /^Expert$/);
+    chooseMenuItem('Game', /^Leaderboard\.\.\.$/);
+    const dialog = screen.getByRole('dialog', { name: 'Leaderboard' });
+    expect(await within(dialog).findByText('Ali')).toBeInTheDocument();
+    expect(within(dialog).getByText('3.21')).toBeInTheDocument();
+    expect(within(dialog).getByText('Samer').closest('tr')).toHaveClass('is-me', 'gap');
+    expect(lb.fetchBoard).toHaveBeenLastCalledWith('expert', expect.any(String), 10);
+    expect(within(dialog).getByRole('tab', { name: 'Expert' })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.click(within(dialog).getByRole('tab', { name: 'Beginner' }));
+    await waitFor(() => expect(lb.fetchBoard).toHaveBeenLastCalledWith('beginner', expect.any(String), 10));
+  });
+
+  it('lets the player set a name from the leaderboard', async () => {
+    const lb = fakeLeaderboard();
+    render(<App store={store} leaderboard={lb} />);
+    chooseMenuItem('Game', /^Leaderboard\.\.\.$/);
+    const dialog = screen.getByRole('dialog', { name: 'Leaderboard' });
+    expect(await within(dialog).findByText(/No times yet/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Type your name to join/)).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Name:' }), { target: { value: '  Dana ' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(JSON.parse(store.get(SETTINGS_KEY)!).playerName).toBe('Dana');
+    expect(within(dialog).queryByText(/Type your name to join/)).toBeNull();
+  });
+
+  it('says so when the leaderboard is not reachable', async () => {
+    const lb = fakeLeaderboard();
+    lb.fetchBoard.mockRejectedValueOnce(new Error('offline'));
+    render(<App store={store} leaderboard={lb} />);
+    chooseMenuItem('Game', /^Leaderboard\.\.\.$/);
+    const dialog = screen.getByRole('dialog', { name: 'Leaderboard' });
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Retry' }));
+    expect(await within(dialog).findByText(/No times yet/)).toBeInTheDocument();
+  });
+
+  it('explains when no leaderboard is set up', () => {
+    render(<App store={store} leaderboard={null} />);
+    chooseMenuItem('Game', /^Leaderboard\.\.\.$/);
+    expect(screen.getByText(/isn't set up yet/)).toBeInTheDocument();
   });
 });

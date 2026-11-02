@@ -5,6 +5,7 @@ import { BestTimesDialog } from './components/dialogs/BestTimesDialog';
 import { ConfirmDialog } from './components/dialogs/ConfirmDialog';
 import { CustomDialog } from './components/dialogs/CustomDialog';
 import { HelpDialog } from './components/dialogs/HelpDialog';
+import { LeaderboardDialog } from './components/dialogs/LeaderboardDialog';
 import { NameDialog } from './components/dialogs/NameDialog';
 import { StatisticsDialog } from './components/dialogs/StatisticsDialog';
 import { FaceButton } from './components/FaceButton';
@@ -30,8 +31,11 @@ import {
   type BoardConfig,
   type Difficulty,
   type GameState,
+  type PresetDifficulty,
 } from './engine';
 import { useZoom } from './hooks/useZoom';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from './online/config';
+import { createSupabaseClient, playerIdFor, syncBestTimes, type LeaderboardClient } from './online/leaderboard';
 import {
   bestTimeFor,
   clearBestTimes,
@@ -75,7 +79,8 @@ type DialogState =
   | { kind: 'about' }
   | { kind: 'reset-stats' }
   | { kind: 'confirm-new'; difficulty: Difficulty }
-  | { kind: 'name'; slot: RecordSlot; seconds: number; levelText: string };
+  | { kind: 'name'; slot: RecordSlot; seconds: number; levelText: string }
+  | { kind: 'leaderboard'; level: PresetDifficulty };
 
 interface LastResult {
   gameId: number;
@@ -86,9 +91,16 @@ interface LastResult {
 const ZOOM_LABELS: Record<string, string> = { auto: 'Auto Size', 1: '100%', 1.5: '150%', 2: '200%', 3: '300%' };
 
 const defaultStore = createBrowserStore();
+const defaultLeaderboard = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const NAME_PROMPT_DELAY_MS = import.meta.env.MODE === 'test' ? 0 : 2200;
 
-export default function App({ store = defaultStore }: { store?: KeyValueStore }) {
+export default function App({
+  store = defaultStore,
+  leaderboard = defaultLeaderboard,
+}: {
+  store?: KeyValueStore;
+  leaderboard?: LeaderboardClient | null;
+}) {
   const [settings, setSettings] = useState<Settings>(() => loadSettings(store));
   const [records, setRecords] = useState<Records>(() => loadRecords(store));
   const [game, dispatch] = useReducer(gameReducer, undefined, () =>
@@ -223,6 +235,29 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
     }
   }, [game, updateRecords]);
 
+  // ---- Online leaderboard -------------------------------------------------
+
+  const playerId = useMemo(() => playerIdFor(store), [store]);
+  // Sends run one after another, so a repeat sees that the last one finished.
+  const syncChain = useRef<Promise<unknown>>(Promise.resolve());
+  const syncNow = useCallback(() => {
+    syncChain.current = syncChain.current.then(() => {
+      const s = settingsRef.current;
+      if (!leaderboard || !s.onlineScores) return true;
+      return syncBestTimes(store, leaderboard, s.playerName, recordsRef.current);
+    });
+    return syncChain.current;
+  }, [leaderboard, store]);
+  const synced = useCallback(() => syncChain.current, []);
+
+  // Send new best times, but wait while the player is still typing their name for one.
+  const askingName = dialog?.kind === 'name';
+  useEffect(() => {
+    if (!askingName) void syncNow();
+  }, [records, settings.playerName, settings.onlineScores, askingName, syncNow]);
+
+  const openLeaderboard = useCallback((level: PresetDifficulty) => setDialog({ kind: 'leaderboard', level }), []);
+
   const onTick = useCallback(() => {
     if (settingsRef.current.sound) playSound('tick');
   }, []);
@@ -248,6 +283,8 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
 
   const menus: MenuDef[] = useMemo(() => {
     const d = settings.difficulty;
+    // The leaderboard opens on the level being played; custom boards aren't ranked.
+    const onlineLevel: PresetDifficulty = d === 'custom' ? 'beginner' : d;
     const level = (diff: Difficulty, access: string) => ({
       label: DIFFICULTY_LABELS[diff],
       access,
@@ -274,6 +311,7 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
           { type: 'separator' },
           { label: 'Best Times...', access: 'T', onSelect: () => setDialog({ kind: 'best' }) },
           { label: 'Statistics...', access: 'S', onSelect: () => setDialog({ kind: 'stats' }) },
+          { label: 'Leaderboard...', access: 'L', onSelect: () => openLeaderboard(onlineLevel) },
         ],
       },
       {
@@ -300,6 +338,12 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
             checked: settings.confirmAbandon,
             onSelect: () => updateSettings({ confirmAbandon: !settings.confirmAbandon }),
           },
+          {
+            label: 'Send Times to Leaderboard',
+            access: 'L',
+            checked: settings.onlineScores,
+            onSelect: () => updateSettings({ onlineScores: !settings.onlineScores }),
+          },
           { type: 'separator' },
           ...(['auto', 1, 1.5, 2, 3] as ZoomSetting[]).map(zoomItem),
           { type: 'separator' },
@@ -317,7 +361,7 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
         ],
       },
     ];
-  }, [settings, requestGame, newGame, updateSettings]);
+  }, [settings, requestGame, newGame, updateSettings, openLeaderboard]);
 
   const closeDialog = useCallback(() => setDialog(null), []);
 
@@ -424,6 +468,27 @@ export default function App({ store = defaultStore }: { store?: KeyValueStore })
       )}
       {(dialog?.kind === 'help' || dialog?.kind === 'about') && (
         <HelpDialog topic={dialog.kind} zoom={dialogZoom} persistent={store.persistent} onClose={closeDialog} />
+      )}
+      {dialog?.kind === 'leaderboard' && (
+        <LeaderboardDialog
+          client={leaderboard}
+          playerId={playerId}
+          level={dialog.level}
+          playerName={settings.playerName}
+          sending={settings.onlineScores}
+          synced={synced}
+          zoom={dialogZoom}
+          onLevelChange={openLeaderboard}
+          onNameChange={(name) => {
+            updateSettings({ playerName: name });
+            void syncNow();
+          }}
+          onSendingChange={(on) => {
+            updateSettings({ onlineScores: on });
+            void syncNow();
+          }}
+          onClose={closeDialog}
+        />
       )}
       {dialog?.kind === 'name' && (
         <NameDialog
