@@ -50,7 +50,7 @@ export function HelpDialog({ topic, zoom, persistent, onClose }: HelpDialogProps
         <ul>
           <li>Tap: open a square, or chord on a number.</li>
           <li>Flag button below the board: switch taps to placing flags.</li>
-          <li>Press and hold: place or remove a flag.</li>
+          <li>Press and hold: does the opposite of the current mode (flags in normal mode, opens a square in flag mode).</li>
         </ul>
         <h3>Keyboard</h3>
         <ul>

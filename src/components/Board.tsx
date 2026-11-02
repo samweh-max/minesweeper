@@ -57,9 +57,9 @@ export function Board({ game, flagMode, onActivate, onChord, onMark, onPressChan
   const [keyboardMode, setKeyboardMode] = useState(false);
 
   // Latest props for the window-level listeners.
-  const latest = useRef({ game, onActivate, onChord, onMark, onPressChange });
+  const latest = useRef({ game, flagMode, onActivate, onChord, onMark, onPressChange });
   useLayoutEffect(() => {
-    latest.current = { game, onActivate, onChord, onMark, onPressChange };
+    latest.current = { game, flagMode, onActivate, onChord, onMark, onPressChange };
   });
 
   const setPress = useCallback((p: Press | null) => {
@@ -188,9 +188,12 @@ export function Board({ game, flagMode, onActivate, onChord, onMark, onPressChan
       const t = touch.current;
       if (!t || t.id !== e.pointerId) return;
       t.longPressed = true;
-      // A long press flags, whatever the current mode.
-      if (!latest.current.game.revealed[t.index]) {
-        latest.current.onMark(t.index);
+      // A long press does the opposite of the current mode: it flags in
+      // reveal mode and opens the tile in flag mode.
+      const { game: g, flagMode: flagging } = latest.current;
+      if (!g.revealed[t.index]) {
+        if (flagging) latest.current.onActivate(t.index);
+        else latest.current.onMark(t.index);
         navigator.vibrate?.(15);
       }
       setPress(null);

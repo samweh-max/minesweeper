@@ -25,7 +25,7 @@ npm run test:e2e     # browser checks with Playwright (run `npm run build` first
 - Timer starts on the first reveal and is computed from timestamps, so throttled tabs do not drift. It stops at a win or loss and is capped at 999.
 - Best times per difficulty and per custom configuration, with the classic "type your name" prompt. Statistics include played, won, lost, win % per level and overall, plus current and longest streak. Resetting either one asks for confirmation.
 - Options: Marks (?), Sound (off by default, synthesized with Web Audio), Colour-blind numbers, Confirm New Game, and Zoom (Auto/100/150/200/300%).
-- Touch: a Flag button appears on touch screens, and press-and-hold also flags. Extra fingers are ignored, and a tap that turns into a scroll is cancelled.
+- Touch: a Flag button appears on touch screens, and press-and-hold does the opposite of the current mode (flags normally, opens the square in flag mode). Extra fingers are ignored, and a tap that turns into a scroll is cancelled.
 - Keyboard: arrows/Home/End move, Enter/Space opens or chords, F flags, F2 starts a new game, Alt+G/O/H opens menus, Esc closes. Tiles have screen-reader labels.
 
 ## Structure

@@ -377,6 +377,21 @@ describe('touch and keyboard', () => {
     expect(status()).toBe('Ready');
   });
 
+  it('long press opens a tile while flag mode is on', () => {
+    vi.useFakeTimers();
+    setup();
+    fireEvent.click(screen.getByRole('button', { name: /Flag/ }));
+    fireEvent.pointerDown(cell(START), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
+    act(() => vi.advanceTimersByTime(600));
+    fireEvent.pointerUp(cell(START), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
+    expect(kind(START)).toBe('open');
+    // A normal tap in flag mode still flags.
+    const hidden = safeIndices.find((i) => kind(i) === 'hidden')!;
+    fireEvent.pointerDown(cell(hidden), { pointerId: 2, pointerType: 'touch', clientX: 10, clientY: 10 });
+    fireEvent.pointerUp(cell(hidden), { pointerId: 2, pointerType: 'touch', clientX: 10, clientY: 10 });
+    expect(kind(hidden)).toBe('flag');
+  });
+
   it('arrow keys move, F flags, Enter reveals', () => {
     setup();
     cell(0).focus();
