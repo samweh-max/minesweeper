@@ -39,7 +39,11 @@ await new Promise((resolve, reject) => {
 
 const browser = await chromium.launch();
 const consoleErrors = [];
-function watch(page, label) {
+async function watch(page, label) {
+  // Keep the checks offline: answer the online leaderboard with an empty board.
+  await page.route('https://*.supabase.co/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
   page.on('console', (m) => {
     if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`${label}: ${m.text()}`);
   });
@@ -125,7 +129,7 @@ console.log('Desktop 1280 × 800');
 {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
-  watch(page, 'desktop');
+  await watch(page, 'desktop');
   await page.goto(URL);
   await page.screenshot({ path: join(shots, 'desktop-beginner.png') });
   check((await page.locator('[role="gridcell"]').count()) === 81, 'beginner board has 81 cells');
@@ -294,7 +298,7 @@ console.log('Phone 390 × 844 (touch)');
     hasTouch: true,
   });
   const page = await context.newPage();
-  watch(page, 'phone');
+  await watch(page, 'phone');
   await page.goto(URL);
   const toggle = page.getByRole('button', { name: /Flag/ });
   check(await toggle.isVisible(), 'flag-mode button visible on touch screens');
