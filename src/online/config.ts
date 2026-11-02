@@ -6,5 +6,5 @@
  */
 const env = import.meta.env as Record<string, string | undefined>;
 
-export const SUPABASE_URL = env.VITE_SUPABASE_URL || '';
-export const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || '';
+export const SUPABASE_URL = env.VITE_SUPABASE_URL || 'https://gkzjmmuoojwbgxgxzgbd.supabase.co';
+export const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_1_lzgJOe67tjhV4iS7ByTg_xhwduSxi';
