@@ -30,7 +30,7 @@ interface TouchState {
   longPressed: boolean;
 }
 
-const LONG_PRESS_MS = 450;
+const LONG_PRESS_MS = 300;
 const TOUCH_SLOP_PX = 10;
 /** Mouse events that browsers emulate after a touch are ignored for this long. */
 const TOUCH_MOUSE_GUARD_MS = 800;

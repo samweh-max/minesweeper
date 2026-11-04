@@ -368,14 +368,26 @@ describe('touch and keyboard', () => {
     expect(status()).toBe('Ready');
   });
 
-  it('long press flags', () => {
+  it('long press flags after 300ms', () => {
     vi.useFakeTimers();
     setup();
     fireEvent.pointerDown(cell(3), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
-    act(() => vi.advanceTimersByTime(600));
+    act(() => vi.advanceTimersByTime(299));
+    expect(kind(3)).toBe('hidden');
+    act(() => vi.advanceTimersByTime(1));
+    expect(kind(3)).toBe('flag');
     fireEvent.pointerUp(cell(3), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
     expect(kind(3)).toBe('flag');
     expect(status()).toBe('Ready');
+  });
+
+  it('a short hold is still a tap', () => {
+    vi.useFakeTimers();
+    setup();
+    fireEvent.pointerDown(cell(START), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
+    act(() => vi.advanceTimersByTime(250));
+    fireEvent.pointerUp(cell(START), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
+    expect(kind(START)).toBe('open');
   });
 
   it('long press opens a tile while flag mode is on', () => {
@@ -383,7 +395,7 @@ describe('touch and keyboard', () => {
     setup();
     fireEvent.click(screen.getByRole('button', { name: /Flag/ }));
     fireEvent.pointerDown(cell(START), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
-    act(() => vi.advanceTimersByTime(600));
+    act(() => vi.advanceTimersByTime(300));
     fireEvent.pointerUp(cell(START), { pointerId: 1, pointerType: 'touch', clientX: 10, clientY: 10 });
     expect(kind(START)).toBe('open');
     // A normal tap in flag mode still flags.
